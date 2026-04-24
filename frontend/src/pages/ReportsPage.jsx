@@ -3,7 +3,7 @@ import { api, formatApiError } from '../api'
 import PageHeader from '../components/PageHeader.jsx'
 import { usePageTitle } from '../hooks/usePageTitle'
 import EmptyState from '../components/EmptyState.jsx'
-import { formatMoney } from '../utils/format.js'
+import { formatFixed2, formatMoney } from '../utils/format.js'
 
 function todayISO() {
   const d = new Date()
@@ -118,8 +118,8 @@ export default function ReportsPage() {
                 <span className="badge warn">Reorder soon</span>
                 <h3>{a.name}</h3>
                 <p className="meta">
-                  On hand <strong style={{ color: 'var(--text)' }}>{a.quantity}</strong> {a.unit} · alerts below{' '}
-                  <strong style={{ color: 'var(--text)' }}>{a.low_stock_threshold}</strong>
+                  On hand <strong style={{ color: 'var(--text)' }}>{formatFixed2(a.quantity)}</strong> {a.unit} · alerts below{' '}
+                  <strong style={{ color: 'var(--text)' }}>{formatFixed2(a.low_stock_threshold)}</strong>
                 </p>
               </article>
             ))}

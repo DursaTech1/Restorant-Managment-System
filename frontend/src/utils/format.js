@@ -11,3 +11,9 @@ export function formatDateTime(iso) {
     timeStyle: 'short',
   }).format(new Date(iso))
 }
+
+export function formatFixed2(value) {
+  const n = Number(value)
+  if (Number.isNaN(n)) return '0.00'
+  return n.toFixed(2)
+}

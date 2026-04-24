@@ -2,11 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { api, formatApiError } from '../api'
 import PageHeader from '../components/PageHeader.jsx'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { formatFixed2 } from '../utils/format.js'
 
 function rowDirty(r, edits) {
   const e = edits[r.id]
   if (!e) return false
-  return String(e.quantity) !== String(r.quantity) || String(e.low_stock_threshold) !== String(r.low_stock_threshold)
+  return formatFixed2(e.quantity) !== formatFixed2(r.quantity) || formatFixed2(e.low_stock_threshold) !== formatFixed2(r.low_stock_threshold)
 }
 
 export default function InventoryPage() {
@@ -28,7 +29,7 @@ export default function InventoryPage() {
         setRows(list)
         const e = {}
         for (const r of list) {
-          e[r.id] = { quantity: String(r.quantity), low_stock_threshold: String(r.low_stock_threshold) }
+          e[r.id] = { quantity: formatFixed2(r.quantity), low_stock_threshold: formatFixed2(r.low_stock_threshold) }
         }
         setEdits(e)
       })
@@ -118,18 +119,24 @@ export default function InventoryPage() {
                   <td>
                     <input
                       className="table-input"
+                      type="number"
+                      step="0.01"
                       aria-label={`Quantity for ${r.name}`}
                       value={edits[r.id]?.quantity ?? ''}
                       onChange={(e) => change(r.id, 'quantity', e.target.value)}
+                      onBlur={(e) => change(r.id, 'quantity', formatFixed2(e.target.value))}
                     />
                   </td>
                   <td>{r.unit}</td>
                   <td>
                     <input
                       className="table-input"
+                      type="number"
+                      step="0.01"
                       aria-label={`Low threshold for ${r.name}`}
                       value={edits[r.id]?.low_stock_threshold ?? ''}
                       onChange={(e) => change(r.id, 'low_stock_threshold', e.target.value)}
+                      onBlur={(e) => change(r.id, 'low_stock_threshold', formatFixed2(e.target.value))}
                     />
                   </td>
                   <td>
