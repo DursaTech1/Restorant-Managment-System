@@ -12,6 +12,7 @@ export default function MenuPage() {
   usePageTitle('Menu')
   const [items, setItems] = useState([])
   const [onlyAvail, setOnlyAvail] = useState(false)
+  const [query, setQuery] = useState('')
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -35,6 +36,14 @@ export default function MenuPage() {
     }
   }, [onlyAvail])
 
+  const normalizedQuery = query.trim().toLowerCase()
+  const visibleItems = items.filter((m) => {
+    if (!normalizedQuery) return true
+    const hay = `${m.name} ${m.description ?? ''}`.toLowerCase()
+    return hay.includes(normalizedQuery)
+  })
+  const availableCount = items.filter((m) => m.is_available).length
+
   return (
     <>
       <PageHeader
@@ -42,11 +51,27 @@ export default function MenuPage() {
         subtitle="Live from your kitchen catalog. Toggle to show only dishes you are serving right now."
       />
 
-      <div className="toolbar">
-        <label className="toggle">
-          <input type="checkbox" checked={onlyAvail} onChange={(e) => setOnlyAvail(e.target.checked)} />
-          Show available only
-        </label>
+      <div className="menu-toolbar">
+        <div className="menu-toolbar__left">
+          <label className="toggle">
+            <input type="checkbox" checked={onlyAvail} onChange={(e) => setOnlyAvail(e.target.checked)} />
+            Show available only
+          </label>
+          <span className="menu-kpi">{availableCount} available</span>
+          <span className="menu-kpi">{items.length} total</span>
+        </div>
+        <div className="menu-search">
+          <label className="visually-hidden" htmlFor="menu-search-input">
+            Search dishes
+          </label>
+          <input
+            id="menu-search-input"
+            type="search"
+            placeholder="Search dish name or description..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       {err && (
@@ -70,9 +95,22 @@ export default function MenuPage() {
         />
       )}
 
-      {!loading && items.length > 0 && (
+      {!loading && items.length > 0 && visibleItems.length === 0 && (
+        <EmptyState
+          icon="🔎"
+          title="No menu items match"
+          hint="Try a different search phrase or clear the filters."
+          action={
+            <button type="button" className="btn btn-ghost" onClick={() => setQuery('')}>
+              Clear search
+            </button>
+          }
+        />
+      )}
+
+      {!loading && visibleItems.length > 0 && (
         <div className="card-grid">
-          {items.map((m) => (
+          {visibleItems.map((m) => (
             <article key={m.id} className="card card--menu">
               <MenuItemMedia imageUrl={m.image_url} name={m.name} variant="card" />
               <div className="card--menu__body">

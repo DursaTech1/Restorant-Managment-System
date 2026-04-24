@@ -19,6 +19,11 @@
   --ok-muted: rgba(95, 212, 154, 0.12);
   --info: #7eb8ff;
   --info-muted: rgba(126, 184, 255, 0.1);
+  --overlay: rgba(0, 0, 0, 0.55);
+  --table-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
+  --card-shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.22);
+  --alert-error-text: #ffc8c0;
+  --alert-success-text: #b8f0d0;
   --radius: 12px;
   --radius-sm: 8px;
   --radius-lg: 16px;
@@ -27,6 +32,35 @@
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --header-h: 56px;
+}
+
+html[data-theme='light'] {
+  --bg: #f4f6f4;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f2f5f2;
+  --surface2: #edf2ee;
+  --border: #d9e2db;
+  --border-strong: #b5c3ba;
+  --text: #1d2921;
+  --text-soft: #2a3a30;
+  --muted: #5d7164;
+  --accent: #9a7a2f;
+  --accent-hover: #846824;
+  --accent-muted: rgba(154, 122, 47, 0.16);
+  --accent-dim: #8a6d2a;
+  --danger: #b03d33;
+  --danger-muted: rgba(176, 61, 51, 0.1);
+  --ok: #1e7a52;
+  --ok-muted: rgba(30, 122, 82, 0.12);
+  --info: #2d6ab8;
+  --info-muted: rgba(45, 106, 184, 0.1);
+  --overlay: rgba(8, 20, 12, 0.35);
+  --table-shadow: 0 2px 16px rgba(20, 36, 24, 0.08);
+  --card-shadow-hover: 0 10px 24px rgba(20, 36, 24, 0.14);
+  --alert-error-text: #8d2f28;
+  --alert-success-text: #0f5b3a;
+  --shadow: 0 10px 28px rgba(20, 36, 24, 0.12);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -47,6 +81,7 @@
 
 html {
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -71,6 +106,12 @@ body::before {
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(212, 181, 106, 0.08), transparent 55%),
     radial-gradient(ellipse 60% 40% at 100% 100%, rgba(95, 212, 154, 0.04), transparent 50%);
   z-index: 0;
+}
+
+html[data-theme='light'] body::before {
+  background:
+    radial-gradient(ellipse 80% 55% at 50% -20%, rgba(154, 122, 47, 0.08), transparent 58%),
+    radial-gradient(ellipse 60% 45% at 100% 100%, rgba(30, 122, 82, 0.05), transparent 52%);
 }
 
 #root {
@@ -107,6 +148,11 @@ button {
 
 button:disabled {
   cursor: not-allowed;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 85%, transparent);
 }
 
 :focus-visible {

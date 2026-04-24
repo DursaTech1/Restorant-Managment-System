@@ -71,3 +71,31 @@ class RMSTests(TestCase):
             resp = self.client.patch(f"/api/orders/{oid}/status/", {"status": st}, format="json")
             self.assertEqual(resp.status_code, 200, resp.content)
         self.assertEqual(Order.objects.get(pk=oid).status, Order.Status.SERVED)
+
+    def test_cancelling_confirmed_order_restores_inventory(self):
+        before = self.inv.quantity
+        create = self.client.post(
+            "/api/orders/place/",
+            {"lines": [{"menu_item_id": self.item.pk, "quantity": 3}]},
+            format="json",
+        )
+        self.assertEqual(create.status_code, 201, create.content)
+        self.inv.refresh_from_db()
+        self.assertEqual(self.inv.quantity, Decimal("9.4"))
+
+        oid = create.json()["id"]
+        cancel = self.client.patch(f"/api/orders/{oid}/status/", {"status": "cancelled"}, format="json")
+        self.assertEqual(cancel.status_code, 200, cancel.content)
+        self.inv.refresh_from_db()
+        self.assertEqual(self.inv.quantity, before)
+
+    def test_place_order_fails_when_menu_item_has_no_recipe(self):
+        no_recipe_item = MenuItem.objects.create(name="Mystery Dish", price=Decimal("8.00"))
+        resp = self.client.post(
+            "/api/orders/place/",
+            {"lines": [{"menu_item_id": no_recipe_item.pk, "quantity": 1}]},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400, resp.content)
+        body = resp.json()
+        self.assertIn("inventory", body)

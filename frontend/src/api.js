@@ -69,11 +69,4 @@ export const api = {
   getReservations: () => request('/api/reservations/'),
   createReservation: (body) => request('/api/reservations/', { method: 'POST', body }),
   patchReservation: (id, body) => request(`/api/reservations/${id}/`, { method: 'PATCH', body }),
-  getInventory: () => request('/api/inventory/'),
-  patchInventory: (id, body) => request(`/api/inventory/${id}/`, { method: 'PATCH', body }),
-  getDailySales: (date) => {
-    const q = date ? `?date=${encodeURIComponent(date)}` : ''
-    return request(`/api/reports/daily-sales/${q}`)
-  },
-  getStockAlerts: () => request('/api/reports/stock-alerts/'),
 }

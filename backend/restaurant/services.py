@@ -12,12 +12,25 @@ class InsufficientInventory(Exception):
         super().__init__(detail)
 
 
+class MissingRecipe(Exception):
+    def __init__(self, detail: str):
+        self.detail = detail
+        super().__init__(detail)
+
+
 def compute_required_inventory(menu_item_id: int, quantity: int) -> dict[int, Decimal]:
     """Map inventory_item_id -> total quantity needed for this menu line."""
-    from .models import MenuItemRecipe
+    from .models import MenuItem, MenuItemRecipe
 
     needed: dict[int, Decimal] = {}
-    for row in MenuItemRecipe.objects.filter(menu_item_id=menu_item_id):
+    rows = list(MenuItemRecipe.objects.filter(menu_item_id=menu_item_id))
+    if not rows:
+        menu_name = (
+            MenuItem.objects.filter(pk=menu_item_id).values_list("name", flat=True).first()
+            or f"#{menu_item_id}"
+        )
+        raise MissingRecipe(f"Menu item '{menu_name}' has no recipe and cannot be sold.")
+    for row in rows:
         inv_id = row.inventory_item_id
         needed[inv_id] = needed.get(inv_id, Decimal("0")) + row.quantity_per_portion * quantity
     return needed
@@ -34,7 +47,8 @@ def merge_inventory_needs(*dicts: dict[int, Decimal]) -> dict[int, Decimal]:
 def assert_inventory_available(needs: dict[int, Decimal]) -> None:
     if not needs:
         return
-    items = {i.pk: i for i in InventoryItem.objects.filter(pk__in=needs.keys())}
+    # Lock rows used in this order so check+deduct runs consistently.
+    items = {i.pk: i for i in InventoryItem.objects.select_for_update().filter(pk__in=needs.keys())}
     short = []
     for inv_id, req in needs.items():
         inv = items.get(inv_id)

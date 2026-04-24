@@ -2,8 +2,14 @@ from django.contrib import admin
 from django.contrib.auth.admin import GroupAdmin as DjangoGroupAdmin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 from django.contrib.auth.models import Group, User
+from django.db.models import F
+from django.template.response import TemplateResponse
+from django.urls import reverse
+from django.urls import path
+from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from datetime import datetime
 from unfold.admin import ModelAdmin, TabularInline
 
 from .models import InventoryItem, MenuItem, MenuItemRecipe, Order, OrderLine, Reservation, Table
@@ -163,3 +169,80 @@ class ReservationAdmin(ModelAdmin):
         ("Window", {"fields": ("starts_at", "ends_at")}),
         ("Meta", {"fields": ("created_at",), "classes": ("collapse",)}),
     )
+
+
+def admin_reports_view(request):
+    day_raw = request.GET.get("date")
+    error = None
+    if day_raw:
+        try:
+            day = datetime.strptime(day_raw, "%Y-%m-%d").date()
+        except ValueError:
+            day = timezone.now().date()
+            error = "Invalid date format. Use YYYY-MM-DD."
+    else:
+        day = timezone.now().date()
+
+    served_orders = (
+        Order.objects.filter(status=Order.Status.SERVED, updated_at__date=day)
+        .prefetch_related("lines")
+    )
+    total_revenue = sum(
+        sum(line.unit_price * line.quantity for line in order.lines.all())
+        for order in served_orders
+    )
+    stock_alerts = InventoryItem.objects.filter(quantity__lte=F("low_stock_threshold")).order_by("name")
+
+    context = {
+        **admin.site.each_context(request),
+        "title": "Reports",
+        "report_date": day,
+        "served_orders_count": served_orders.count(),
+        "total_revenue": total_revenue,
+        "stock_alerts": stock_alerts,
+        "error": error,
+    }
+    return TemplateResponse(request, "admin/reports_dashboard.html", context)
+
+
+_original_admin_get_urls = admin.site.get_urls
+
+
+def _admin_get_urls():
+    custom_urls = [
+        path("restaurant/reports/", admin.site.admin_view(admin_reports_view), name="reports-dashboard"),
+    ]
+    return custom_urls + _original_admin_get_urls()
+
+
+admin.site.get_urls = _admin_get_urls
+
+
+_original_admin_get_app_list = admin.site.get_app_list
+
+
+def _admin_get_app_list(request, app_label=None):
+    app_list = _original_admin_get_app_list(request, app_label=app_label)
+    reports_url = reverse("admin:reports-dashboard")
+    for app in app_list:
+        if app.get("app_label") != "restaurant":
+            continue
+        models = app.setdefault("models", [])
+        exists = any(model.get("object_name") == "ReportsDashboard" for model in models)
+        if exists:
+            break
+        models.append(
+            {
+                "name": "Reports",
+                "object_name": "ReportsDashboard",
+                "admin_url": reports_url,
+                "add_url": None,
+                "view_only": True,
+                "perms": {"add": False, "change": True, "delete": False, "view": True},
+            }
+        )
+        break
+    return app_list
+
+
+admin.site.get_app_list = _admin_get_app_list

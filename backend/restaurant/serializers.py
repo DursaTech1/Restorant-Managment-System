@@ -2,7 +2,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from .models import InventoryItem, MenuItem, MenuItemRecipe, Order, OrderLine, Reservation, Table
-from .services import InsufficientInventory, assert_table_available, set_order_status
+from .services import InsufficientInventory, MissingRecipe, assert_table_available, set_order_status
 
 
 class MenuItemSerializer(serializers.ModelSerializer):
@@ -111,7 +111,7 @@ class PlaceOrderSerializer(serializers.Serializer):
             )
         try:
             set_order_status(order, Order.Status.CONFIRMED)
-        except InsufficientInventory as e:
+        except (InsufficientInventory, MissingRecipe) as e:
             raise serializers.ValidationError({"inventory": e.detail}) from e
         order.refresh_from_db()
         return order
@@ -143,7 +143,7 @@ class OrderStatusUpdateSerializer(serializers.Serializer):
             set_order_status(instance, new_status)
         except ValueError as e:
             raise serializers.ValidationError({"status": str(e)}) from e
-        except InsufficientInventory as e:
+        except (InsufficientInventory, MissingRecipe) as e:
             raise serializers.ValidationError({"inventory": e.detail}) from e
         instance.refresh_from_db()
         return instance

@@ -21,9 +21,18 @@ class Table(models.Model):
 class MenuItem(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal("0.01"))])
+    price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        validators=[MinValueValidator(Decimal("0.01"))]
+    )
     is_available = models.BooleanField(default=True)
-    image = models.ImageField(upload_to="menu_items/", blank=True, null=True, help_text="Shown on the guest menu.")
+    image = models.ImageField(
+        upload_to="menu_items/", 
+        blank=True, 
+        null=True, 
+        help_text="Shown on the guest menu."
+    )
 
     class Meta:
         ordering = ["name"]
@@ -34,10 +43,14 @@ class MenuItem(models.Model):
 
 class InventoryItem(models.Model):
     name = models.CharField(max_length=200, unique=True)
-    quantity = models.DecimalField(max_digits=14, decimal_places=4, default=0, validators=[MinValueValidator(Decimal("0"))])
+    quantity = models.IntegerField(
+        default=0, 
+        validators=[MinValueValidator(0)]
+    )
     unit = models.CharField(max_length=20, default="unit")
-    low_stock_threshold = models.DecimalField(
-        max_digits=14, decimal_places=4, default=Decimal("0"), validators=[MinValueValidator(Decimal("0"))]
+    low_stock_threshold = models.IntegerField(
+        default=0, 
+        validators=[MinValueValidator(0)]
     )
 
     class Meta:
@@ -56,7 +69,11 @@ class MenuItemRecipe(models.Model):
 
     menu_item = models.ForeignKey(MenuItem, on_delete=models.CASCADE, related_name="recipe_lines")
     inventory_item = models.ForeignKey(InventoryItem, on_delete=models.PROTECT, related_name="recipe_usages")
-    quantity_per_portion = models.DecimalField(max_digits=14, decimal_places=4, validators=[MinValueValidator(Decimal("0.0001"))])
+    quantity_per_portion = models.DecimalField(
+        max_digits=14, 
+        decimal_places=2, 
+        validators=[MinValueValidator(Decimal("0.01"))]
+    )
 
     class Meta:
         unique_together = [["menu_item", "inventory_item"]]
@@ -132,7 +149,10 @@ class OrderLine(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="lines")
     menu_item = models.ForeignKey(MenuItem, on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    unit_price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2
+    )
 
     class Meta:
         ordering = ["id"]

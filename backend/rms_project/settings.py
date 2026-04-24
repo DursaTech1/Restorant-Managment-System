@@ -201,6 +201,11 @@ UNFOLD = {
                         "icon": "receipt_long",
                         "link": reverse_lazy("admin:restaurant_order_changelist"),
                     },
+                    {
+                        "title": "Reports",
+                        "icon": "insights",
+                        "link": reverse_lazy("admin:reports-dashboard"),
+                    },
                 ],
             },
             {

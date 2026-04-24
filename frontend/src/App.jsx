@@ -6,8 +6,6 @@ import OrdersPage from './pages/OrdersPage.jsx'
 import OrderDetailPage from './pages/OrderDetailPage.jsx'
 import PlaceOrderPage from './pages/PlaceOrderPage.jsx'
 import ReservationsPage from './pages/ReservationsPage.jsx'
-import InventoryPage from './pages/InventoryPage.jsx'
-import ReportsPage from './pages/ReportsPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
 const nav = [
@@ -15,8 +13,6 @@ const nav = [
   { to: '/place-order', label: 'Place order' },
   { to: '/orders', label: 'Orders' },
   { to: '/reservations', label: 'Reservations' },
-  { to: '/inventory', label: 'Inventory' },
-  { to: '/reports', label: 'Reports' },
 ]
 
 function MenuIcon({ open }) {
@@ -32,9 +28,52 @@ function MenuIcon({ open }) {
   )
 }
 
+function ThemeIcon({ theme }) {
+  if (theme === 'light') {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
+        <path
+          d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+      </svg>
+    )
+  }
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M21 14.2A9 9 0 1 1 9.8 3a7 7 0 1 0 11.2 11.2Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export default function App() {
   const [navOpen, setNavOpen] = useState(false)
+  const [theme, setTheme] = useState('dark')
   const location = useLocation()
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem('rms-theme')
+    if (stored === 'light' || stored === 'dark') {
+      setTheme(stored)
+      return
+    }
+    const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches
+    setTheme(prefersLight ? 'light' : 'dark')
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    window.localStorage.setItem('rms-theme', theme)
+  }, [theme])
 
   useEffect(() => {
     setNavOpen(false)
@@ -74,23 +113,43 @@ export default function App() {
           ))}
         </nav>
         <div className="sidebar__foot">
-          Service runs against your Django API. Start the backend on port 8000 for live data.
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            <ThemeIcon theme={theme} />
+            <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          </button>
+          <p>Service runs against your Django API. Start the backend on port 8000 for live data.</p>
         </div>
       </aside>
 
       <div className="main-wrap">
         <header className="mobile-bar">
           <span className="mobile-bar__brand">RMS</span>
-          <button
-            type="button"
-            className="menu-toggle"
-            aria-expanded={navOpen}
-            aria-controls="sidebar-nav"
-            onClick={() => setNavOpen((o) => !o)}
-          >
-            <span className="visually-hidden">{navOpen ? 'Close menu' : 'Open menu'}</span>
-            <MenuIcon open={navOpen} />
-          </button>
+          <div className="mobile-bar__actions">
+            <button
+              type="button"
+              className="theme-toggle theme-toggle--mobile"
+              onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              <ThemeIcon theme={theme} />
+            </button>
+            <button
+              type="button"
+              className="menu-toggle"
+              aria-expanded={navOpen}
+              aria-controls="sidebar-nav"
+              onClick={() => setNavOpen((o) => !o)}
+            >
+              <span className="visually-hidden">{navOpen ? 'Close menu' : 'Open menu'}</span>
+              <MenuIcon open={navOpen} />
+            </button>
+          </div>
         </header>
 
         <main id="main-content" className="main">
@@ -100,8 +159,6 @@ export default function App() {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/orders/:id" element={<OrderDetailPage />} />
             <Route path="/reservations" element={<ReservationsPage />} />
-            <Route path="/inventory" element={<InventoryPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
