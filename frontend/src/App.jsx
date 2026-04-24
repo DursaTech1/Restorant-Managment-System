@@ -122,7 +122,7 @@ export default function App() {
             <ThemeIcon theme={theme} />
             <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
           </button>
-          <p>Service runs against your Django API. Start the backend on port 8000 for live data.</p>
+          <p></p>
         </div>
       </aside>
 
