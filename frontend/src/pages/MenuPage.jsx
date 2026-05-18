@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { api, formatApiError } from '../api'
 import PageHeader from '../components/PageHeader.jsx'
@@ -10,39 +10,73 @@ import { formatMoney } from '../utils/format.js'
 
 export default function MenuPage() {
   usePageTitle('Menu')
+  
   const [items, setItems] = useState([])
   const [onlyAvail, setOnlyAvail] = useState(false)
   const [query, setQuery] = useState('')
-  const [err, setErr] = useState('')
+  const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
+  // Fetch menu data when availability filter changes
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setErr('')
-    api
-      .getMenu(onlyAvail)
-      .then((data) => {
-        if (!cancelled) setItems(Array.isArray(data) ? data : [])
-      })
-      .catch((e) => {
-        if (!cancelled) setErr(formatApiError(e.data) || e.message)
-      })
-      .finally(() => {
+
+    const fetchMenu = async () => {
+      setLoading(true)
+      setError('')
+      
+      try {
+        const data = await api.getMenu(onlyAvail)
+        if (!cancelled) {
+          setItems(Array.isArray(data) ? data : [])
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(formatApiError(err?.data) || err?.message || 'Failed to load menu')
+        }
+      } finally {
         if (!cancelled) setLoading(false)
-      })
+      }
+    }
+
+    fetchMenu()
+
     return () => {
       cancelled = true
     }
   }, [onlyAvail])
 
-  const normalizedQuery = query.trim().toLowerCase()
-  const visibleItems = items.filter((m) => {
-    if (!normalizedQuery) return true
-    const hay = `${m.name} ${m.description ?? ''}`.toLowerCase()
-    return hay.includes(normalizedQuery)
-  })
-  const availableCount = items.filter((m) => m.is_available).length
+  // Filter items by search query (memoized for performance)
+  const filteredItems = useMemo(() => {
+    const searchTerm = query.trim().toLowerCase()
+    if (!searchTerm) return items
+
+    return items.filter((item) => {
+      const searchableText = `${item.name} ${item.description ?? ''}`.toLowerCase()
+      return searchableText.includes(searchTerm)
+    })
+  }, [items, query])
+
+  // Derived state
+  const availableCount = items.filter((item) => item.is_available).length
+  const hasItems = items.length > 0
+  const hasFilteredItems = filteredItems.length > 0
+  const showEmptyState = !loading && !hasItems
+  const showNoResults = !loading && hasItems && !hasFilteredItems
+  const showMenuGrid = !loading && hasFilteredItems
+
+  // Event handlers (memoized)
+  const handleToggleAvailability = useCallback((e) => {
+    setOnlyAvail(e.target.checked)
+  }, [])
+
+  const handleSearchChange = useCallback((e) => {
+    setQuery(e.target.value)
+  }, [])
+
+  const handleClearSearch = useCallback(() => {
+    setQuery('')
+  }, [])
 
   return (
     <>
@@ -54,12 +88,22 @@ export default function MenuPage() {
       <div className="menu-toolbar">
         <div className="menu-toolbar__left">
           <label className="toggle">
-            <input type="checkbox" checked={onlyAvail} onChange={(e) => setOnlyAvail(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={onlyAvail}
+              onChange={handleToggleAvailability}
+              aria-label="Show available items only"
+            />
             Show available only
           </label>
-          <span className="menu-kpi">{availableCount} available</span>
-          <span className="menu-kpi">{items.length} total</span>
+          <span className="menu-kpi" aria-label={`${availableCount} available items`}>
+            {availableCount} available
+          </span>
+          <span className="menu-kpi" aria-label={`${items.length} total items`}>
+            {items.length} total
+          </span>
         </div>
+
         <div className="menu-search">
           <label className="visually-hidden" htmlFor="menu-search-input">
             Search dishes
@@ -69,20 +113,21 @@ export default function MenuPage() {
             type="search"
             placeholder="Search dish name or description..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={handleSearchChange}
+            aria-label="Search menu items"
           />
         </div>
       </div>
 
-      {err && (
+      {error && (
         <div className="alert alert-error" style={{ marginBottom: '1.25rem' }} role="alert">
-          {err}
+          <strong>Error:</strong> {error}
         </div>
       )}
 
       {loading && <SkeletonMenu count={6} />}
 
-      {!loading && items.length === 0 && (
+      {showEmptyState && (
         <EmptyState
           icon="🍽️"
           title="No dishes yet"
@@ -95,31 +140,31 @@ export default function MenuPage() {
         />
       )}
 
-      {!loading && items.length > 0 && visibleItems.length === 0 && (
+      {showNoResults && (
         <EmptyState
           icon="🔎"
           title="No menu items match"
-          hint="Try a different search phrase or clear the filters."
+          hint={query.trim() ? `No results found for "${query.trim()}"` : 'Try a different search phrase or clear the filters.'}
           action={
-            <button type="button" className="btn btn-ghost" onClick={() => setQuery('')}>
+            <button type="button" className="btn btn-ghost" onClick={handleClearSearch}>
               Clear search
             </button>
           }
         />
       )}
 
-      {!loading && visibleItems.length > 0 && (
+      {showMenuGrid && (
         <div className="card-grid">
-          {visibleItems.map((m) => (
-            <article key={m.id} className="card card--menu">
-              <MenuItemMedia imageUrl={m.image_url} name={m.name} variant="card" />
+          {filteredItems.map((item) => (
+            <article key={item.id} className="card card--menu">
+              <MenuItemMedia imageUrl={item.image_url} name={item.name} variant="card" />
               <div className="card--menu__body">
-                <span className={`badge ${m.is_available ? 'ok' : 'warn'}`}>
-                  {m.is_available ? 'Available' : 'Unavailable'}
+                <span className={`badge ${item.is_available ? 'ok' : 'warn'}`}>
+                  {item.is_available ? 'Available' : 'Unavailable'}
                 </span>
-                <h3>{m.name}</h3>
-                <p className="meta">{m.description?.trim() ? m.description : 'No description yet.'}</p>
-                <div className="card__price">{formatMoney(m.price)}</div>
+                <h3>{item.name}</h3>
+                <p className="meta">{item.description?.trim() || 'No description yet.'}</p>
+                <div className="card__price">{formatMoney(item.price)}</div>
               </div>
             </article>
           ))}

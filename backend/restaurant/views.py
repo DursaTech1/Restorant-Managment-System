@@ -4,8 +4,22 @@ from django.db.models import F
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import generics, status
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework.views import APIView
+
+@api_view(['GET'])
+def api_root(request, format=None):
+    return Response({
+        'menu': reverse('menu-list', request=request, format=format),
+        'orders': reverse('order-list', request=request, format=format),
+        'reservations': reverse('reservation-list-create', request=request, format=format),
+        'inventory': reverse('inventory-list', request=request, format=format),
+        'tables': reverse('table-list', request=request, format=format),
+        'reports/daily-sales': reverse('report-daily-sales', request=request, format=format),
+        'reports/stock-alerts': reverse('report-stock-alerts', request=request, format=format),
+    })
 
 from .models import InventoryItem, MenuItem, Order, Reservation, Table
 from .serializers import (
